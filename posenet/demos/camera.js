@@ -232,6 +232,7 @@ function detectPoseInRealTime(video, net) {
       case 'single-pose':
         const pose = await guiState.net.estimateSinglePose(
             video, imageScaleFactor, flipHorizontal, outputStride);
+        // console.log(pose);
         poses.push(pose);
 
         minPoseConfidence = +guiState.singlePoseDetection.minPoseConfidence;

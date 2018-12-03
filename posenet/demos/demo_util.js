@@ -17,7 +17,7 @@
 import * as posenet from '@tensorflow-models/posenet';
 import * as tf from '@tensorflow/tfjs';
 
-const color = 'aqua';
+const color = 'blue';
 const boundingBoxColor = 'red';
 const lineWidth = 2;
 
@@ -50,12 +50,25 @@ export function drawSegment([ay, ax], [by, bx], color, scale, ctx) {
 export function drawSkeleton(keypoints, minConfidence, ctx, scale = 1) {
   const adjacentKeyPoints =
       posenet.getAdjacentKeyPoints(keypoints, minConfidence);
-
   adjacentKeyPoints.forEach((keypoints) => {
+
     drawSegment(
         toTuple(keypoints[0].position), toTuple(keypoints[1].position), color,
         scale, ctx);
   });
+}
+// convert Radian to Degree
+function radiansToDegrees(radians) {
+  var pi = Math.PI;
+  return radians * (180/pi);
+}
+
+// calculate articulation angle from 3 x,y points
+function findAngle(A,B,C) {
+  var AB = Math.sqrt(Math.pow(B.x-A.x,2)+ Math.pow(B.y-A.y,2));
+  var BC = Math.sqrt(Math.pow(B.x-C.x,2)+ Math.pow(B.y-C.y,2));
+  var AC = Math.sqrt(Math.pow(C.x-A.x,2)+ Math.pow(C.y-A.y,2));
+  return Math.acos((BC*BC+AB*AB-AC*AC)/(2*BC*AB));
 }
 
 /**
@@ -70,7 +83,31 @@ export function drawKeypoints(keypoints, minConfidence, ctx, scale = 1) {
     }
 
     const {y, x} = keypoint.position;
+
+    // logic for right Elbow
+    if (keypoint.part === "rightElbow") {
+      const rightShoulder = keypoints.find(function(kp) {
+        return kp.part === 'rightShoulder' ;
+      });
+      const rightWrist = keypoints.find(function(kp) {
+        return kp.part === 'rightWrist';
+      });
+      // if shoulder & Wrist found
+      if (rightShoulder !== null && rightWrist !== null) {
+        // Calculate Angle
+
+        const angle = radiansToDegrees(
+          findAngle(rightShoulder.position, keypoint.position, rightWrist.position)
+        );
+        // console.log(angle);
+
+        if (angle > 90) {
+          return drawPoint(ctx, y * scale, x * scale, 30, 'red');
+        }
+      }
+    }
     drawPoint(ctx, y * scale, x * scale, 3, color);
+
   }
 }
 
